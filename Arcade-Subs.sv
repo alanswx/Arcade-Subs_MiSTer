@@ -436,9 +436,10 @@ wire [7:0] new_r = fg  ? a_bbrw : ~status[16] ? bga_r : {bg_r,bg_r};
 wire [7:0] new_g = fg  ? a_bbgw : ~status[16] ? bga_g : {bg_g,bg_g};
 wire [7:0] new_b = fg  ? a_bbbw : ~status[16] ? bga_b : {bg_b,bg_b};
 
-wire [7:0] a_bbrw = !bg_a ? bg_r : bbrw;
-wire [7:0] a_bbgw = !bg_a ? bg_g : bbgw;
-wire [7:0] a_bbbw = !bg_a ? bg_b : bbbw;
+
+wire [7:0] a_bbrw = (bg_a=='hF) ? {bg_r,bg_r} : bbrw;
+wire [7:0] a_bbgw = (bg_a=='hF) ? {bg_g,bg_g} : bbgw;
+wire [7:0] a_bbbw = (bg_a=='hF) ? {bg_b,bg_b} : bbbw;
 
 
 wire [7:0] bbrw = ~status[18] ? blend_r_w : blend_r;
@@ -450,8 +451,8 @@ wire [7:0] bbbw = ~status[18] ? blend_b_w : blend_b;
 // r + (255-r)*tint
 // to simplify we want tint ~ 3/4 =  ( 1/4 + 1/2 )
 wire [7:0] blend_r_w = r > 108 ? (blend_r + ((8'd255-blend_r)>>1) + ((8'd255-blend_r)>>2) ) : blend_r;
-wire [7:0] blend_g_w = r > 108 ? (blend_g + ((8'd255-blend_g)>>1) + ((8'd255-blend_g)>>2) ) : blend_g;
-wire [7:0] blend_b_w = r > 108 ? (blend_b + ((8'd255-blend_b)>>1) + ((8'd255-blend_b)>>2) ) : blend_b;
+wire [7:0] blend_g_w = g > 108 ? (blend_g + ((8'd255-blend_g)>>1) + ((8'd255-blend_g)>>2) ) : blend_g;
+wire [7:0] blend_b_w = b > 108 ? (blend_b + ((8'd255-blend_b)>>1) + ((8'd255-blend_b)>>2) ) : blend_b;
 
 
 wire [7:0] blend_r = ~status[17] ? bg ? { bg_r << 2 | bg_r[0] , bg_r << 2 | bg_r[0]} : r : r;
