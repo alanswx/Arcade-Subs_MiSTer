@@ -23,14 +23,4 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/joy2quad.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/alphablend.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv
 
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_M4.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_D8.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_D7.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_E7.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_E8.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_E1.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_E2.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_P1.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_P2.vhd
-set_global_assignment -name VHDL_FILE rtl/roms/ROM_N2.vhd
 set_global_assignment -name VHDL_FILE rtl/roms/PROM_SYNC.vhd

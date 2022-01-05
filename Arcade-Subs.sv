@@ -142,6 +142,7 @@ localparam CONF_STR = {
 	"-;",
 	//"F2,OVR,Load Overlay;",
 	"O1,Test,Off,On;",
+	"O6,Overlay,On,Off;",
 	//"O2,Monitor ,1,2;",
 	// overlay alpha is useful for debugging
 	//"OG,Overlay Alpha,On,Off;",
@@ -330,7 +331,7 @@ arcade_video #(320,24) arcade_video
 
         .clk_video(clk_48),
 
-        .RGB_in({new_r,new_g,new_b}),
+        .RGB_in(~status[6] ? {new_r,new_g,new_b} : {r,g,b }),
         .HBlank(hblank),
         .VBlank(vblank),
         .HSync(hs),
