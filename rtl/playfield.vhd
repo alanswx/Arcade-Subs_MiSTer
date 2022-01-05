@@ -20,7 +20,8 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity playfield is 
 port(		
-			Clk6				: in	std_logic;
+			Clk_6				: in	std_logic;
+			clk_12			: in	std_logic;
 			DMA				: in	std_logic_vector(7 downto 0);
 			HCount			: in  std_logic_vector(8 downto 0);
 			VCount			: in  std_logic_vector(7 downto 0);
@@ -28,7 +29,14 @@ port(
 			HSync				: in	std_logic;
 			H256_s			: out std_logic; -- 256H* on schematic
 			PFld1_n			: out std_logic;
-			Pfld2_n			: out std_logic
+			Pfld2_n			: out std_logic;
+			
+			-- signals that carry the ROM data from the MiSTer disk
+			dn_addr        : in  std_logic_vector(15 downto 0);
+			dn_dout        : in  std_logic_vector(7 downto 0);
+			dn_wr          : in  std_logic;
+			
+			rom_M4_cs   		: in std_logic
 			);
 end playfield;
 
@@ -69,8 +77,6 @@ signal Dispd			: std_logic_vector(7 downto 0) := (others => '0');
 
 signal L6_reg			: std_logic_vector(2 downto 0);
 			
-			
-			
 begin			
 
 H1 <= HCount(0);
@@ -93,30 +99,29 @@ SnrDMA_n(1) <= DMA_n(7) nor SnrWndo_n;
 SnrDMA_n(0) <= DMA_n(6) nor SnrWndo_n;			
 
 
-
---M4: entity work.pf_rom
---port map(
---		clock => clk6,
---		address => SnrDMA_n(1) & SnrDMA_n(0) & DMA(5 downto 0) & VCount(2 downto 0),
---		q => Dispd
---		);
-			
-M4: entity work.ROM_M4
-port map(
-	clk => clk6,
-	addr => SnrDMA_n(1) & SnrDMA_n(0) & DMA(5 downto 0) & VCount(2 downto 0),
-	data => Dispd
+M4 : work.dpram generic map (11,8)
+port map
+(
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_M4_cs,
+	address_a => dn_addr(10 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => SnrDMA_n(1) & SnrDMA_n(0) & DMA(5 downto 0) & VCount(2 downto 0),
+	q_b => Dispd	
 );
-			
+	
+	
 Char_Load_n <= not (H1 and H2 and H4);
 SLoad_n <= Char_Load_n or H256_n;
 
 -- 74LS166 video shift register	
-N4: process(clk6, SLoad_n, VBlank_n_s, Dispd, shift_data)
+N4: process(Clk_6, SLoad_n, VBlank_n_s, Dispd, shift_data)
 begin
 	if VBlank_n_s = '0' then -- Connected Clear input
 		shift_data <= (others => '0');
-	elsif rising_edge(clk6) then 
+	elsif rising_edge(Clk_6) then 
 		if SLoad_n = '0' then -- Parallel load
 			shift_data <= Dispd;
 		else
@@ -170,9 +175,9 @@ end process;
 
 -- 74LS163 counter at L6
 -- CEP and CET tied to ground, counter is used only as a synchronous latch
-L6: process(clk6, H256, Char_Load_n, DMA_n, SnrWndo_n)
+L6: process(Clk_6, H256, Char_Load_n, DMA_n, SnrWndo_n)
 begin
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if Char_Load_n = '0' then
 			L6_reg <= (DMA_n(7) nand SnrWndo_n) & (DMA_n(6) nand SnrWndo_n) & H256;
 		end if;

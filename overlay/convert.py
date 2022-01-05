@@ -1,5 +1,6 @@
 from PIL import Image
 import sys
+import binascii
 
 from array import *
 
@@ -9,7 +10,9 @@ def convertImage(name):
    print(name_array)
    print(name_array[:-1])
    out_name='_'.join(name_array[:-1])+'.ovr'
+   out_name_hex='_'.join(name_array[:-1])+'.hex'   
    print(out_name)
+   print(out_name_hex)
 
    im = Image.open(name).convert('RGBA')
    (s,s,width,height)=im.getbbox()
@@ -18,7 +21,7 @@ def convertImage(name):
 
    bin_array3 = array('B')
 
-   for y in range(height):
+   for y in range(height):                                       
     for x in range(width):
         count = count+1
         pixel = im.getpixel((x,y))
@@ -38,6 +41,12 @@ def convertImage(name):
         bin_array3.append(byte2)
    newFile = open(out_name, "wb")
    newFile.write(bin_array3)
+   newFile.close()
+
+   newFileHex = open(out_name_hex, "wb")
+   hexarray = binascii.hexlify(bytearray(bin_array3))
+   newFileHex.write(hexarray)
+   newFileHex.close()
 
 if __name__ == "__main__":
   #print(sys.argv[1])

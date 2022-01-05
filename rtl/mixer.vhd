@@ -20,7 +20,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity mixer is 
 port(		
-			Clk6				: in	std_logic;
+			Clk_6				: in	std_logic;
 			PRAM				: in	std_logic_vector(7 downto 0);
 			VBlank_n_s		: in  std_logic; -- VBLANK* on the schematic	
 			Load_n			: in  std_logic_vector(7 downto 0);
@@ -72,9 +72,9 @@ end process;
 
 
 -- 74LS174 latches video signals with rising edge of 6MHz clock
-L8: process(Clk6)
+L8: process(Clk_6)
 begin
-	if rising_edge(Clk6) then
+	if rising_edge(Clk_6) then
 		Sub1_n_Q <= Sub1_n;
 		PFld1_n_Q <= PFld1_n;
 		Torp1_2_Q <= Torp1 nor Torp2;

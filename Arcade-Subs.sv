@@ -140,15 +140,16 @@ localparam CONF_STR = {
 	"-;",
 	"DIP;",
 	"-;",
-	"F2,OVR,Load Overlay;",
+	//"F2,OVR,Load Overlay;",
 	"O1,Test,Off,On;",
-	"O2,Monitor ,1,2;",
+	//"O2,Monitor ,1,2;",
 	// overlay alpha is useful for debugging
-	"OG,Overlay Alpha,On,Off;",
+	//"OG,Overlay Alpha,On,Off;",
 	// blend the vector with the overlay
-	"OH,Color Vector,Overlay On,White always;",
+	//"OH,Color Vector,Overlay On,White always;",
 	//  tint the vector towards white
-	"OI,Tint Vector White,On,Off;",	"R0,Reset;",
+	//"OI,Tint Vector White,On,Off;",	
+	"R0,Reset;",
 	"J1,Fire,Start 1P,Coin;",
 	"jn,A,Start,R;",
 	"V,v",`BUILD_DATE
@@ -165,7 +166,7 @@ wire        direct_video;
 wire        ioctl_download;
 wire        ioctl_wr;
 wire [24:0] ioctl_addr;
-wire [7:0] ioctl_dout;
+wire [7:0]	ioctl_dout;
 wire [15:0] ioctl_index;
 
 wire [10:0] ps2_key;
@@ -241,11 +242,16 @@ wire  [7:0] DIP_Sw = 8'b10000000;
 
 wire	 		Display_1, Display_2;
 wire vid = status[2] ? Display_2 : Display_1;
+wire m_tilt=0;
 
 subs_core subs_core(		
-	.clk12(clk_12),
+	.clk_12(clk_12),
 	.Clk_50_I(),
 	.Reset_I(~(status[0] | buttons[1])),
+	.dn_addr(ioctl_addr[16:0]),
+	.dn_dout(ioctl_dout),
+	.dn_wr(ioctl_wr && ioctl_index==0),
+
 	.Vid1_O(Display_1),
 	.Vid2_O(Display_2),
 	.CompSync_O(),
@@ -286,48 +292,6 @@ joy2quad joy2quad(
 );	
 
 
-
-
-
-/*
-wire videowht,videoblk,compositesync,lamp;
-wire [2:0] videorgb;
-
-sprint1 sprint1(
-	.Clk_50_I(CLK_50M),
-	.Reset_n(~(RESET | status[0] | buttons[1] | ioctl_download)),
-
-	.dn_addr(ioctl_addr[16:0]),
-	.dn_data(ioctl_dout),
-	.dn_wr(ioctl_wr),
-
-	.VideoW_O(videowht),
-	.VideoB_O(videoblk),
-	.VideoRGB_O(videorgb),
-	
-	.Sync_O(compositesync),
-	.Audio1_O(audio),
-	.Coin1_I(~(m_coin)),
-	.Coin2_I(~(1'b0)),
-	.Start_I(~(m_start1)),
-	.Gas_I(~m_gas),
-	.Gear1_I(gear1),
-	.Gear2_I(gear2),
-	.Gear3_I(gear3),
-	.gear_shift(gear),
-	.Test_I	(~status[13]),
-	.SteerA_I(steer[1]),
-	.SteerB_I(steer[0]),
-	.StartLamp_O(lamp),
-	.hs_O(hs),
-	.vs_O(vs),
-	.hblank_O(hblank),
-	.vblank_O(vblank),
-	.clk_12(clk_12),
-	.clk_6_O(CLK_VIDEO_2),
-	.SW1_I(SW1)
-	);
-*/
 			
 wire [6:0] audio;
 wire [1:0] video;

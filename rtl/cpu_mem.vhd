@@ -20,7 +20,8 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity CPU_mem is 
 port(		
-			Clk6					: in  	std_logic; -- 6MHz on schematic
+			Clk_6					: in  	std_logic; -- 6MHz on schematic
+			clk_12				: in		std_logic;				
 			Ena_3k				: buffer	std_logic; -- 3kHz clock enable, used by sound circuit
 			Reset_I				: in  	std_logic;
 			Reset_n				: buffer	std_logic;
@@ -46,7 +47,18 @@ port(
 			PHI1					: buffer std_logic;
 			PHI2					: buffer std_logic;
 			DMA					: out 	std_logic_vector(7 downto 0);
-			DMA_n				   : out		std_logic_vector(7 downto 0)
+			DMA_n				   : out		std_logic_vector(7 downto 0);
+			
+			-- signals that carry the ROM data from the MiSTer disk
+			dn_addr        	: in  std_logic_vector(15 downto 0);
+			dn_dout	       	: in  std_logic_vector(7 downto 0);
+			dn_wr          	: in  std_logic;
+			
+			rom_E2_cs			: in  std_logic;
+			rom_E1_cs			: in  std_logic;
+			rom_P1_cs			: in  std_logic;
+			rom_P2_cs			: in  std_logic;
+			rom_N2_cs			: in	std_logic
 			);
 end CPU_mem;
 
@@ -116,9 +128,9 @@ begin
 -- line counter. This attemps to do thins in a manner that is more proper for a synchronous
 -- FPGA design using the main 6MHz clock in conjunction with a 750kHz clock enable for the CPU.
 -- This also creates a 3kHz clock enable used by filters in the sound module.
-Clock_ena: process(Clk6) 
+Clock_ena: process(Clk_6) 
 begin
-	if rising_edge(Clk6) then
+	if rising_edge(Clk_6) then
 		ena_count <= ena_count + "1";
 		ena_750k <= '0';
 		ena_750k_2 <= '0';
@@ -173,7 +185,7 @@ port map(
 		Enable => ena_750k,
 		Mode => "00",
 		Res_n => reset_n,
-		Clk => clk6,
+		Clk => Clk_6,
 		Rdy => '1',
 		Abort_n => '1',
 		IRQ_n => '1',
@@ -208,13 +220,19 @@ Phi1 <= not Phi2;
 --		address => BA(8 downto 0),
 --		q => ROM0_dout(3 downto 0)
 --		);
-
-E1: entity work.ROM_E1
+--256
+E1 : work.dpram generic map (8,4)
 port map(
-	clk => clk6,
-	addr => BA(7 downto 0),
-	data => ROM0_dout(3 downto 0)
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_E1_cs,
+	address_a => dn_addr(7 downto 0),
+	data_a    => dn_dout(3 downto 0),
+	
+	clock_b => Clk_6,
+	address_b => BA(7 downto 0),
+	q_b => ROM0_dout(3 downto 0)
 );
+
 
 --E2: entity work.ProgROM0b	
 --port map(
@@ -222,12 +240,17 @@ port map(
 --		address => BA(8 downto 0),
 --		q => ROM0_dout(7 downto 4)
 --		);
-
-E2: entity work.ROM_E2
+-- 256
+E2 : work.dpram generic map (8,4)
 port map(
-	clk => clk6,
-	addr => BA(7 downto 0),
-	data => ROM0_dout(7 downto 4)
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_E2_cs,
+	address_a => dn_addr(7 downto 0),
+	data_a    => dn_dout(7 downto 4),
+
+	clock_b => Clk_6,
+	address_b => BA(7 downto 0),
+	q_b => ROM0_dout(7 downto 4)
 );
 		
 --P1: entity work.ProgROM1
@@ -236,12 +259,17 @@ port map(
 --		address => BA(10 downto 0),
 --		q => ROM1_dout
 --		);
-		
-P1: entity work.ROM_P1
+-- 2048
+P1 : work.dpram generic map (11,8)
 port map(
-	clk => clk6,
-	addr => BA(10 downto 0),
-	data => ROM1_dout
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_P1_cs,
+	address_a => dn_addr(10 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => BA(10 downto 0),
+	q_b => ROM1_dout
 );
 
 --P2: entity work.ProgROM2
@@ -250,12 +278,17 @@ port map(
 --		address => BA(10 downto 0),
 --		q => ROM2_dout
 --		);
-		
-P2: entity work.ROM_P2
+-- 2048
+P2 : work.dpram generic map (11,8)
 port map(
-	clk => clk6,
-	addr => BA(10 downto 0),
-	data => ROM2_dout
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_P2_cs,
+	address_a => dn_addr(10 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => BA(10 downto 0),
+	q_b => ROM2_dout
 );		
 		
 --N2: entity work.ProgROM3
@@ -264,18 +297,23 @@ port map(
 --		address => BA(10 downto 0),
 --		q => ROM3_dout
 --		);
-		
-N2: entity work.ROM_N2
+-- 2048
+N2 : work.dpram generic map (11,8)
 port map(
-	clk => clk6,
-	addr => BA(10 downto 0),
-	data => ROM3_dout
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_N2_cs,
+	address_a => dn_addr(10 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => BA(10 downto 0),
+	q_b => ROM3_dout
 );		
 		
 -- Video RAM 
 RAM1k: entity work.ram1k
 port map(
-	clock => clk6,
+	clock => Clk_6,
 	address => RAM_addr,
 	wren => ram_we,
 	data => DBus_n,
@@ -288,9 +326,9 @@ ram_we <= (not Write_n) and (not Display_n);
 Vram_addr <= (V128 or H256_n) & (V64 or H256_n) & (V32 or H256_n) & (V16 and H256) & (V8 and H256) & H128 & H64 & H32 & H16 & H8;
 
 -- Selects control of RAM address between CPU and video circuit
-VRAM_mux: process(clk6)
+VRAM_mux: process(Clk_6)
 begin	
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if phi2 = '0' then
 			RAM_addr <= Vram_addr; 
 		else
@@ -300,7 +338,7 @@ begin
 end process;
 
 --Latches data from RAM bus on rising edge of Phi2 clock
-D5_6: process(clk6) --fix
+D5_6: process(Clk_6) --fix
 begin
 	if rising_edge(phi2) then
 		DMA_n <= RAM_dout;
@@ -339,7 +377,7 @@ Inputs_n <= Control_Read_n and Coin_Read_n and Options_Read_n;
 
 
 -- 74LS259 addressable latch at C9, this drives outputs
-C9: process(clk6, Reset_n, Write_n) -- added write_n
+C9: process(Clk_6, Reset_n, Write_n) -- added write_n
 begin
 	if (Reset_n = '0') then
 		LED1 <= '0'; 		-- Player 1 Start LED
@@ -350,7 +388,7 @@ begin
 		Explode <= '0';	-- Explosion sound enable
 		Invert1 <= '0';	-- Player 1 video invert
 		Invert2 <= '0'; 	-- Player 2 video invert
-		elsif rising_edge(clk6) then
+		elsif rising_edge(Clk_6) then
 		-- This next line models part of the address decoder that enables this latch
 		if (Write_n = '0' and A(13 downto 11) = "000" and BA(7 downto 5) = "011") then 
 		  case A(3 downto 1) is

@@ -21,18 +21,29 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity motion is 
 port(		
-			CLK6			: in  std_logic; -- 6MHz* on schematic
-			PHI2			: in  std_logic;
-			DMA_n			: in  std_logic_vector(7 downto 0);
-			PRAM			: in  std_logic_vector(7 downto 0);
+			Clk_6		: in  std_logic; -- 6MHz* on schematic
+			clk_12		: in	std_logic;			
+			PHI2		: in  std_logic;
+			DMA_n		: in  std_logic_vector(7 downto 0);
+			PRAM		: in  std_logic_vector(7 downto 0);
 			H256_s		: in  std_logic; -- 256H* on schematic
 			VCount		: in  std_logic_vector(7 downto 0);
 			HCount		: in  std_logic_vector(8 downto 0);
 			Load_n		: buffer std_logic_vector(8 downto 1);
 			Sub1_n		: out std_logic;
 			Sub2_n		: out std_logic;
-			Torp1			: out std_logic;
-			Torp2			: out std_logic
+			Torp1		: out std_logic;
+			Torp2		: out std_logic;
+			
+			-- signals that carry the ROM data from the MiSTer disk
+			dn_addr		: in  std_logic_vector(15 downto 0);
+			dn_dout		: in  std_logic_vector(7 downto 0);
+			dn_wr		: in  std_logic;
+
+			rom_D7_cs	: in std_logic;
+			rom_E7_cs	: in std_logic;
+			rom_D8_cs	: in std_logic;
+			rom_E8_cs	: in std_logic
 			);
 end motion;
 
@@ -146,12 +157,16 @@ Load_n(1) <= K9_out(0);
 --		address => PRAM(7 downto 3) & VPos_sum(3 downto 0),
 --		q => ROM_D8Q
 --		);
-
-D8: entity work.ROM_D8
+D8 : work.dpram generic map (9,8)
 port map(
-	clk => clk6,
-	addr => PRAM(7 downto 3) & VPos_sum(3 downto 0),
-	data => ROM_D8Q
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_D8_cs,
+	address_a => dn_addr(8 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => PRAM(7 downto 3) & VPos_sum(3 downto 0),
+	q_b => ROM_D8Q
 );
 
 --E8: entity work.E8_ROM
@@ -160,12 +175,16 @@ port map(
 --		address => PRAM(7 downto 3) & VPos_sum(3 downto 0),
 --		q => ROM_E8Q
 --		);
-
-E8: entity work.ROM_E8
+E8 : work.dpram generic map (9,8)
 port map(
-	clk => clk6,
-	addr => PRAM(7 downto 3) & VPos_sum(3 downto 0),
-	data => ROM_E8Q
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_E8_cs,
+	address_a => dn_addr(8 downto 0),
+	data_a    => dn_dout,
+
+	clock_b => Clk_6,
+	address_b => PRAM(7 downto 3) & VPos_sum(3 downto 0),
+	q_b => ROM_E8Q
 );
 
 --D7: entity work.D7_ROM
@@ -174,12 +193,16 @@ port map(
 --		address => PRAM(7 downto 3) & VPos_sum(3 downto 0),
 --		q => ROM_D7Q
 --		);
-		
-D7: entity work.ROM_D7
+D7 : work.dpram generic map (9,8)
 port map(
-	clk => clk6,
-	addr => PRAM(7 downto 3) & VPos_sum(3 downto 0),
-	data => ROM_D7Q
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_D7_cs,
+	address_a => dn_addr(8 downto 0),
+	data_a    => dn_dout,
+	
+	clock_b => Clk_6,
+	address_b => PRAM(7 downto 3) & VPos_sum(3 downto 0),
+	q_b => ROM_D7Q
 );		
 
 --E7: entity work.E7_ROM
@@ -188,12 +211,16 @@ port map(
 --		address => PRAM(7 downto 3) & VPos_sum(3 downto 0),
 --		q => ROM_E7Q
 --		);
-
-E7: entity work.ROM_E7
+E7 : work.dpram generic map (9,8)
 port map(
-	clk => clk6,
-	addr => PRAM(7 downto 3) & VPos_sum(3 downto 0),
-	data => ROM_E7Q
+	clock_a   => clk_12,
+	wren_a    => dn_wr and rom_E7_cs,
+	address_a => dn_addr(8 downto 0),
+	data_a    => dn_dout,
+
+	clock_b => Clk_6,
+	address_b => PRAM(7 downto 3) & VPos_sum(3 downto 0),
+	q_b => ROM_E7Q
 );	
 
 -- Motion object ROM mux
@@ -203,13 +230,13 @@ SubROM_dout <= ROM_D7Q(2 downto 0) & ROM_D7Q(7 downto 4) & ROM_D8Q(3 downto 0) &
 TorpROM_dout <= ROM_E7Q(2 downto 0) & ROM_E7Q(7 downto 4)& ROM_E8Q(3 downto 0) & ROM_E8Q(7 downto 4);
 Vid <= SubROM_dout when PRAM(0) = '0' else
 		 TorpROM_dout;
-		
-		
+
+
 -- Submarine 1 Horizontal position counter
 -- This combines two 74163s at locations K6 and K5 on the PCB 
-K5_6: process(clk6, H256_s, Load_n, DMA_n)
+K5_6: process(Clk_6, H256_s, Load_n, DMA_n)
 begin
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if Load_n(1) = '0' then -- preload the counter
 			Sub1_Hpos <= DMA_n;
 		elsif H256_s = '1' then -- increment the counter
@@ -225,11 +252,11 @@ end process;
 
 -- Submarine 1 video shift register
 -- This combines two 74165s at locations K7 and K8 on the PCB
-K7_8: process(clk6, Sub1_Inh, Load_n, Vid)
+K7_8: process(Clk_6, Sub1_Inh, Load_n, Vid)
 begin
 	if Load_n(5) = '0' then
 			Sub1_reg <= Vid & '0'; -- Preload the register
-	elsif rising_edge(clk6) then
+	elsif rising_edge(Clk_6) then
 		if Sub1_Inh = '0' then
 			Sub1_reg <= '0' & Sub1_reg(15 downto 1);
 		end if;
@@ -240,9 +267,9 @@ Sub1_n <= not (Sub1_reg(0));
 
 -- Submarine 2 Horizontal position counter
 -- This combines two 74163s at locations J6 and J5 on the PCB 
-J6_5: process(clk6, H256_s, Load_n, DMA_n)
+J6_5: process(Clk_6, H256_s, Load_n, DMA_n)
 begin
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if Load_n(2) = '0' then -- preload the counter
 			Sub2_Hpos <= DMA_n;
 		elsif H256_s = '1' then -- increment the counter
@@ -258,11 +285,11 @@ end process;
 
 -- Submarine 2 video shift register
 -- This combines two 74165s at locations J7 and J8 on the PCB
-J7_8: process(clk6, Sub2_Inh, Load_n, Vid)
+J7_8: process(Clk_6, Sub2_Inh, Load_n, Vid)
 begin
 	if Load_n(6) = '0' then
 			Sub2_reg <= Vid & '0'; -- Preload the register
-	elsif rising_edge(clk6) then
+	elsif rising_edge(Clk_6) then
 		if Sub2_Inh = '0' then
 			Sub2_reg <= '0' & Sub2_reg(15 downto 1);
 		end if;
@@ -273,9 +300,9 @@ Sub2_n <= not (Sub2_reg(0));
 
 -- Torpedo 1 Horizontal position counter
 -- This combines two 74163s at locations J6 and J5 on the PCB 
-H6_5: process(clk6, H256_s, Load_n, DMA_n)
+H6_5: process(Clk_6, H256_s, Load_n, DMA_n)
 begin
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if Load_n(3) = '0' then -- preload the counter
 			Torp1_Hpos <= DMA_n;
 		elsif H256_s = '1' then -- increment the counter
@@ -291,11 +318,11 @@ end process;
 
 -- Torpedo 1 video shift register
 -- This combines two 74165s at locations H7 and H8 on the PCB
-H7_8: process(clk6, Torp1_Inh, Load_n, Vid)
+H7_8: process(Clk_6, Torp1_Inh, Load_n, Vid)
 begin
 	if Load_n(7) = '0' then
 			Torp1_reg <= Vid & '0'; -- Preload the register
-	elsif rising_edge(clk6) then
+	elsif rising_edge(Clk_6) then
 		if Torp1_Inh = '0' then
 			Torp1_reg <= '0' & Torp1_reg(15 downto 1);
 		end if;
@@ -306,9 +333,9 @@ Torp1 <= Torp1_reg(0);
 
 -- Torpedo 2 Horizontal position counter
 -- This combines two 74163s at locations F6 and F5 on the PCB 
-F6_5: process(clk6, H256_s, Load_n, DMA_n)
+F6_5: process(Clk_6, H256_s, Load_n, DMA_n)
 begin
-	if rising_edge(clk6) then
+	if rising_edge(Clk_6) then
 		if Load_n(4) = '0' then -- preload the counter
 			Torp2_Hpos <= DMA_n;
 		elsif H256_s = '1' then -- increment the counter
@@ -324,11 +351,11 @@ end process;
 
 -- Torpedo 2 video shift register
 -- This combines two 74165s at locations F7 and F8 on the PCB
-F7_8: process(clk6, Torp2_Inh, Load_n, Vid)
+F7_8: process(Clk_6, Torp2_Inh, Load_n, Vid)
 begin
 	if Load_n(8) = '0' then
 			Torp2_reg <= Vid & '0'; -- Preload the register
-	elsif rising_edge(clk6) then
+	elsif rising_edge(Clk_6) then
 		if Torp2_Inh = '0' then
 			Torp2_reg <= '0' & Torp2_reg(15 downto 1);
 		end if;

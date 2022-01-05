@@ -20,7 +20,6 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity input is 
 port(		
-			Clk6				: in  std_logic; 
 			Sw_F9				: in  std_logic_vector(7 downto 0); -- DIP switches
 			Coin1_n			: in  std_logic; -- Coin switches
 			Coin2_n			: in 	std_logic;

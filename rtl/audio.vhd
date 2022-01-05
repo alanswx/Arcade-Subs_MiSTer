@@ -21,7 +21,6 @@ use ieee.numeric_std.all;
 entity audio is 
 port(		
 			Clk_50				: in	std_logic;
-			Clk_12				: in  std_logic;
 			Clk_6					: in  std_logic;
 			Ena_3k				: in  std_logic;
 			Reset_n				: in	std_logic;

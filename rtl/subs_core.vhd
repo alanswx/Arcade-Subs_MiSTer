@@ -27,7 +27,6 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity subs_core is 
 port(		
-			clk12			: in	std_logic;
 			Clk_50_I		: in	std_logic;	-- 50MHz input clock
 			Reset_I		: in	std_logic;	-- Reset button (Active low)
 			Vid1_O		: out std_logic;  -- Display 1 video output, 680R resistor to CompVid1
@@ -57,13 +56,20 @@ port(
 			P2_audio		: out std_logic_vector(7 downto 0);
 			LED1_O		: out std_logic;	-- Player 1 and 2 start button LEDs
 			LED2_O		: out std_logic;
-			CCounter_O	: out std_logic	-- Coin counter
+			CCounter_O	: out std_logic;	-- Coin counter
+
+			clk_12		: in  std_logic;
+
+			-- signals that carry the ROM data from the MiSTer disk
+			dn_addr        : in  std_logic_vector(15 downto 0);
+			dn_dout        : in  std_logic_vector(7 downto 0);
+			dn_wr          : in  std_logic
 			);
 end subs_core;
 
 architecture rtl of subs_core is
 
-signal Clk6					: std_logic;
+signal clk_6				: std_logic;
 signal Ena_3k				: std_logic;
 signal Phi1 				: std_logic;
 signal Phi2					: std_logic;
@@ -114,12 +120,43 @@ signal Crash				: std_logic := '0';
 signal Explode				: std_logic := '0';
 signal Video				: std_logic_vector(1 downto 0);
 
+-- logic to load roms from disk
+signal rom_P1_cs   			: std_logic;
+signal rom_P2_cs   			: std_logic;
+signal rom_N2_cs   			: std_logic;
+signal rom_M4_cs   			: std_logic;
+signal rom_D7_cs   			: std_logic;
+signal rom_E7_cs   			: std_logic;
+signal rom_D8_cs   			: std_logic;
+signal rom_E8_cs   			: std_logic;
+signal rom_E2_cs   			: std_logic;
+signal rom_E1_cs   			: std_logic;
+-- signal rom_PROM_SYNC_cs   	: std_logic;
+
+signal overlay_cs				: std_logic;
+
 begin	
 
+
+rom_P1_cs <= '1' when dn_addr(13 downto 11) = "000"  else '0';		-- 2048
+rom_P2_cs <= '1' when dn_addr(13 downto 11) = "001"  else '0';		-- 2048
+rom_N2_cs <= '1' when dn_addr(13 downto 11) = "010"  else '0';		-- 2048
+rom_M4_cs <= '1' when dn_addr(13 downto 11) = "011"  else '0';		-- 2048
+rom_D7_cs <= '1' when dn_addr(13 downto 9) = "10000"  else '0';		-- 512
+rom_E7_cs <= '1' when dn_addr(13 downto 9) = "10001"  else '0';		-- 512
+rom_D8_cs <= '1' when dn_addr(13 downto 9) = "10010"  else '0';		-- 512
+rom_E8_cs <= '1' when dn_addr(13 downto 9) = "10011"  else '0';		-- 512
+rom_E2_cs <= '1' when dn_addr(13 downto 8) = "101000"  else '0';		-- 256
+rom_E1_cs <= '1' when dn_addr(13 downto 8) = "101001"  else '0';		-- 256
+-- rom_PROM_SYNC_cs <= '1' when dn_addr(15 downto 9) = "0011100"   else '0';	
+
+overlay_cs <='1' when dn_addr(13 downto 9) = "10011"  else '0';		-- 512
+
+		
 Vid_sync: entity work.synchronizer
 port map(
-		Clk_12 => Clk12,
-		Clk_6 => Clk6,
+		Clk_12 => clk_12,
+		Clk_6 => Clk_6,
 		HCount => HCount,
 		VCount => VCount,
 		HSync => HSync_s,
@@ -128,13 +165,20 @@ port map(
 		VBlank_n_s => VBlank_n_s,
 		VBlank => VBlank_s,
 		VSync => VSync_s,
-		VSync_n => VSync_n
+		VSync_n => VSync_n--,
+		
+		--dn_wr => dn_wr,
+		--dn_addr=>dn_addr,
+		--dn_dout=>dn_dout--,
+		
+		--rom_PROM_SYNC_cs=>rom_PROM_SYNC_cs
 		);
 		
 		
 PF: entity work.playfield
 port map(
-		Clk6 => Clk6,
+		clk_6 => clk_6,
+		clk_12=>clk_12,
 		DMA => DMA,
 		HCount => HCount,
 		VCount => VCount,
@@ -142,13 +186,20 @@ port map(
 		HSync => HSync_s,
 		H256_s => H256_s,
 		PFld1_n => PFld1_n,
-		Pfld2_n => PFLd2_n
+		Pfld2_n => PFLd2_n,
+		
+		dn_wr => dn_wr,
+		dn_addr=>dn_addr,
+		dn_dout=>dn_dout,
+		
+		rom_M4_cs=>rom_M4_cs
 		);
 		
 
 Objects: entity work.motion
 port map(
-		Clk6 => Clk6,
+		Clk_6 => Clk_6,
+		clk_12=>clk_12,		
 		PHI2 => Phi2,	
 		DMA_n => DMA_n,
 		PRAM => PRAM,
@@ -159,13 +210,22 @@ port map(
 		Sub1_n => Sub1_n,
 		Sub2_n => Sub2_n,
 		Torp1 => Torp1,
-		Torp2 => Torp2
+		Torp2 => Torp2,
+		
+		dn_wr => dn_wr,
+		dn_addr=>dn_addr,
+		dn_dout=>dn_dout,
+		
+		rom_D7_cs=>rom_D7_cs,
+		rom_E7_cs=>rom_E7_cs,
+		rom_D8_cs=>rom_D8_cs,
+		rom_E8_cs=>rom_E8_cs
 		);
 
 		
 VidMixer: entity work.mixer
 port map(
-		Clk6 => Clk6,
+		Clk_6 => Clk_6,
 		PRAM => PRAM,
 		VBlank_n_s => VBlank_n_s,
 		Load_n => Load_n,
@@ -185,7 +245,8 @@ port map(
 		
 CPU: entity work.cpu_mem
 port map(
-		Clk6 => Clk6,
+		Clk_6 => Clk_6,
+		clk_12=>clk_12,			
 		Ena_3k => Ena_3k,
 		Reset_I => Reset_I,
 		Reset_n => Reset_n,
@@ -211,12 +272,21 @@ port map(
 		PHI1 => Phi1,
 		PHI2 => Phi2,
 		DMA => DMA,
-		DMA_n => DMA_n
+		DMA_n => DMA_n,
+		
+		dn_wr => dn_wr,
+		dn_addr=>dn_addr,
+		dn_dout=>dn_dout,
+		
+		rom_E2_cs=>rom_E2_cs,
+		rom_E1_cs=>rom_E1_cs,
+		rom_P1_cs=>rom_P1_cs,
+		rom_P2_cs=>rom_P2_cs,
+		rom_N2_cs=>rom_N2_cs
 		);
 		
 Inputs: entity work.input
 port map(
-		Clk6 => Clk6,
 		Sw_F9 => DIP_Sw,
 		Coin1_n => Coin1_I,
 		Coin2_n => Coin2_I,
@@ -245,8 +315,8 @@ port map(
 Sound: Entity work.audio
 port map(
 		Clk_50 => Clk_50_I,
-		Clk_12 => Clk12,
-		Clk_6 => Clk6,
+		--Clk_12 => clk_12,
+		Clk_6 => Clk_6,
 		Ena_3k => Ena_3k,
 		Reset_n => Reset_n,
 		Load_n => Load_n,
